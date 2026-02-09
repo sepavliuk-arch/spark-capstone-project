@@ -1,0 +1,7 @@
+dependencies {
+    implementation "org.typelevel:cats-effect_${scalaBaseVersion}:${catsEffectVersion}"
+    implementation "com.github.pureconfig:pureconfig_${scalaBaseVersion}:${pureConfigVersion}"
+
+    implementation "org.apache.spark:spark-sql_${scalaBaseVersion}:${sparkVersion}"
+    implementation "org.scala-lang:scala-reflect:${scalaVersion}"
+}
