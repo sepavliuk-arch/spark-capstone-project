@@ -1,0 +1,94 @@
+plugins {
+    id 'scala'
+    id 'com.gradleup.shadow' version '9.3.1' apply false
+}
+
+allprojects {
+    repositories {
+        mavenCentral()
+        gradlePluginPortal()
+    }
+}
+
+subprojects {
+    apply plugin: 'scala'
+
+    tasks.withType(JavaCompile) {
+        sourceCompatibility = JavaVersion.VERSION_17
+        targetCompatibility = JavaVersion.VERSION_17
+    }
+
+    dependencies {
+        implementation "org.scala-lang:scala-library:${scalaVersion}"
+        testImplementation "org.scalatest:scalatest_${scalaBaseVersion}:${scalaTestVersion}"
+        testImplementation "junit:junit:4.13.2"
+        testImplementation "org.scalatestplus:junit-4-13_${scalaBaseVersion}:3.2.16.0"
+    }
+
+    if (project.name == 'spark-jobs') {
+        apply plugin: 'application'
+        apply plugin: 'com.gradleup.shadow'
+
+        application {
+            mainClass.set("com.sepavliuk.capstone.spark.Sessionization")
+        }
+        if (project.hasProperty('runJob')) {
+            application.mainClass.set(project.getProperty('runJob'))
+        }
+
+        tasks.named('shadowJar') {
+            archiveClassifier.set('')
+            mergeServiceFiles()
+            manifest {
+                attributes 'Main-Class': application.mainClass.get()
+            }
+        }
+
+        tasks.register('runJob', JavaExec) {
+            group = 'application'
+            description = 'Runs the selected Spark job locally'
+
+            workingDir = rootProject.projectDir
+
+            mainClass = application.mainClass
+            classpath = project.sourceSets.main.runtimeClasspath
+
+            if (project.hasProperty('date')) {
+                args project.getProperty('date')
+            } else {
+                args '2026-02-09'
+            }
+
+            jvmArgs = [
+                    '--add-exports=java.base/sun.nio.ch=ALL-UNNAMED',
+                    '--add-opens=java.base/java.nio=ALL-UNNAMED',
+                    '-Dspark.master=local[*]'
+            ]
+        }
+
+        test {
+            maxParallelForks = 1
+            forkEvery = 1
+            useJUnit()
+
+            jvmArgs = [
+                    '--add-exports=java.base/sun.nio.ch=ALL-UNNAMED',
+                    '--add-opens=java.base/java.nio=ALL-UNNAMED'
+            ]
+
+            testLogging {
+                events "passed", "skipped", "failed"
+                showStandardStreams = true
+                exceptionFormat = "full"
+            }
+        }
+    }
+}
+
+gradle.projectsEvaluated {
+    def jobProject = project(':spark-jobs')
+    def shadowTask = jobProject.tasks.getByName('shadowJar')
+    def testTask = jobProject.tasks.getByName('test')
+
+    shadowTask.mustRunAfter testTask
+}

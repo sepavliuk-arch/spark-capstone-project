@@ -1,0 +1,11 @@
+pluginManagement {
+    repositories {
+        gradlePluginPortal()
+        mavenCentral()
+    }
+}
+
+rootProject.name = 'spark-capstone-project'
+
+include 'spark-core'
+include 'spark-jobs'

@@ -1,0 +1,42 @@
+plugins {
+    id 'com.gradleup.shadow'
+}
+
+dependencies {
+    implementation project(':spark-core')
+    implementation "com.github.pureconfig:pureconfig_${scalaBaseVersion}:${pureConfigVersion}"
+    implementation "org.typelevel:cats-effect_${scalaBaseVersion}:${catsEffectVersion}"
+    runtimeOnly "org.apache.parquet:parquet-hadoop:1.12.2"
+    runtimeOnly "ch.qos.logback:logback-classic:1.2.13"
+    compileOnly "org.apache.spark:spark-sql_${scalaBaseVersion}:${sparkVersion}"
+    compileOnly "org.apache.spark:spark-catalyst_${scalaBaseVersion}:${sparkVersion}"
+    testImplementation "org.apache.spark:spark-sql_${scalaBaseVersion}:${sparkVersion}"
+    testImplementation "org.apache.spark:spark-core_${scalaBaseVersion}:${sparkVersion}"
+    testImplementation "junit:junit:4.13.2"
+    testImplementation "org.scalatestplus:junit-4-13_${scalaBaseVersion}:3.2.16.0"
+    testImplementation 'org.typelevel:munit-cats-effect-3_2.13:1.0.7'
+}
+
+shadowJar {
+    append 'reference.conf'
+    append 'version.conf'
+    zip64 true
+    with jar
+    archiveFileName = "${project.name}.jar"
+    relocate "cats.kernel", "shadow.cats.kernel"// conflict with older version in Spark
+    manifest {
+        attributes 'Main-Class': 'com.griddynamics.phoenix.spark.PocLoggingJob'
+    }
+}
+
+test {
+    maxParallelForks = 1
+    forkEvery = 1
+
+    jvmArgs = [
+            '--add-exports=java.base/sun.nio.ch=ALL-UNNAMED',
+            '--add-opens=java.base/java.nio=ALL-UNNAMED'
+    ]
+}
+
+build.dependsOn shadowJar
